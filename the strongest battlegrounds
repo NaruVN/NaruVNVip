@@ -1,0 +1,206 @@
+-- [[ the strongest battlegrounds By Diepvien26 ]] --
+-- VERSION: V1 (THE ULTIMATE EDITION)
+-- LOG: FIX NO-WORKING, UPGRADE ESP, UPGRADE AUTO FARM PLAYER
+
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+-- // HỆ THỐNG DỊCH VỤ // --
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local VIM = game:GetService("VirtualInputManager")
+local Workspace = game:GetService("Workspace")
+
+-- // TẢI THƯ VIỆN GIAO DIỆN (FLUENT) // --
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+-- // CẤU HÌNH HỆ THỐNG // --
+local Settings = {
+    AutoWinBeta = false, -- Auto Farm Player
+    Bypass = true,
+    UnderDepth = -6.5,
+    AutoSkill = true,
+    
+    -- ESP UPGRADED
+    ESP_Enabled = false,
+    ESP_Box = false,
+    ESP_Tracer = false,
+    ESP_Names = false,
+    ESP_Dist = false,
+    
+    PotatoMode = false
+}
+
+-- // NÚT NỔI 3 GẠCH (UI TOGGLE) // --
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local MainBtn = Instance.new("Frame", ScreenGui)
+MainBtn.Size = UDim2.fromOffset(45, 45)
+MainBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
+MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainBtn.Active = true
+MainBtn.Draggable = true
+Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(1, 0)
+local Stroke = Instance.new("UIStroke", MainBtn)
+Stroke.Color = Color3.fromRGB(255, 0, 0)
+Stroke.Thickness = 2
+
+local Label = Instance.new("TextLabel", MainBtn)
+Label.Size = UDim2.fromScale(1, 1)
+Label.Text = "≡"
+Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+Label.TextSize = 28
+Label.BackgroundTransparency = 1
+
+local Click = Instance.new("TextButton", MainBtn)
+Click.Size = UDim2.fromScale(1, 1)
+Click.BackgroundTransparency = 1
+Click.Text = ""
+
+-- // TẠO MENU // --
+local Window = Fluent:CreateWindow({
+    Title = "the strongest battlegrounds",
+    SubTitle = "By Diepvien26 (V1)",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(500, 380),
+    Acrylic = false,
+    Theme = "Darker"
+})
+
+Click.MouseButton1Click:Connect(function() Window:Minimize() end)
+
+local Tabs = {
+    Farm = Window:AddTab({ Title = "Auto Farm", Icon = "crosshair" }),
+    Visuals = Window:AddTab({ Title = "ESP Upgrade", Icon = "eye" }),
+    System = Window:AddTab({ Title = "System", Icon = "settings" })
+}
+
+-- // TAB AUTO FARM PLAYER (UPGRADED) // --
+Tabs.Farm:AddToggle("AWB", {Title = "Auto Win Beta (Auto Farm)", Default = false }):OnChanged(function(v) Settings.AutoWinBeta = v end)
+Tabs.Farm:AddToggle("BP", {Title = "Bypass Anti-Cheat", Default = true }):OnChanged(function(v) Settings.Bypass = v end)
+Tabs.Farm:AddSlider("Depth", {Title = "Farm Depth (Y)", Min = -12, Max = -3, Default = -6.5, Rounding = 1}):OnChanged(function(v) Settings.UnderDepth = v end)
+Tabs.Farm:AddToggle("AS", {Title = "Auto Use Skills (1-4)", Default = true }):OnChanged(function(v) Settings.AutoSkill = v end)
+
+-- // TAB ESP NHIỀU CÁI (UPGRADED) // --
+Tabs.Visuals:AddToggle("ESP_M", {Title = "Bật ESP Master", Default = false }):OnChanged(function(v) Settings.ESP_Enabled = v end)
+Tabs.Visuals:AddToggle("ESP_B", {Title = "Box ESP (Khung)", Default = false }):OnChanged(function(v) Settings.ESP_Box = v end)
+Tabs.Visuals:AddToggle("ESP_T", {Title = "Tracer (Đường kẻ)", Default = false }):OnChanged(function(v) Settings.ESP_Tracer = v end)
+Tabs.Visuals:AddToggle("ESP_N", {Title = "Hiển thị Tên", Default = false }):OnChanged(function(v) Settings.ESP_Names = v end)
+Tabs.Visuals:AddToggle("ESP_D", {Title = "Hiển thị Khoảng cách", Default = false }):OnChanged(function(v) Settings.ESP_Dist = v end)
+
+-- // TAB HỆ THỐNG // --
+Tabs.System:AddButton({
+    Title = "Potato Mode (Tối ưu FPS cực hạn)",
+    Callback = function()
+        for _, v in pairs(game:GetDescendants()) do
+            if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic v.CastShadow = false
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then v.Enabled = false end
+        end
+        Fluent:Notify({Title = "System", Content = "Đã tối ưu đồ họa!", Duration = 3})
+    end
+})
+
+-- // LOGIC AUTO FARM PLAYER (FIXED) // --
+local function GetClosestTarget()
+    local target, dist = nil, math.huge
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            local d = (p.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if d < dist then dist = d target = p end
+        end
+    end
+    return target
+end
+
+RunService.Heartbeat:Connect(function()
+    if Settings.AutoWinBeta then
+        local target = GetClosestTarget()
+        if target and target.Character and LocalPlayer.Character then
+            local myHrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local tHrp = target.Character:FindFirstChild("HumanoidRootPart")
+            
+            if myHrp and tHrp then
+                -- FIX: Dùng CFrame Lerp mượt hơn + Reset Velocity để không bị văng
+                myHrp.Velocity = Vector3.new(0, 0, 0)
+                myHrp.CFrame = myHrp.CFrame:Lerp(tHrp.CFrame * CFrame.new(0, Settings.UnderDepth, 0) * CFrame.Angles(math.rad(90), 0, 0), 0.6)
+                
+                -- Auto Attack
+                game:GetService("VirtualUser"):Button1Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                if Settings.AutoSkill then
+                    for i = 1, 4 do VIM:SendKeyEvent(true, tostring(i), false, game) end
+                end
+            end
+        end
+    end
+end)
+
+-- // HỆ THỐNG ESP ĐA NĂNG // --
+local function CreateESP(player)
+    local Box = Drawing.new("Square")
+    local Tracer = Drawing.new("Line")
+    local Name = Drawing.new("Text")
+    
+    RunService.RenderStepped:Connect(function()
+        if Settings.ESP_Enabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.Humanoid.Health > 0 then
+            local hrp = player.Character.HumanoidRootPart
+            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
+            
+            if onScreen then
+                -- Box ESP
+                if Settings.ESP_Box then
+                    Box.Visible = true
+                    Box.Size = Vector2.new(2000 / pos.Z, 2500 / pos.Z)
+                    Box.Position = Vector2.new(pos.X - Box.Size.X / 2, pos.Y - Box.Size.Y / 2)
+                    Box.Color = Color3.fromRGB(255, 0, 0)
+                    Box.Thickness = 1
+                else Box.Visible = false end
+                
+                -- Tracer
+                if Settings.ESP_Tracer then
+                    Tracer.Visible = true
+                    Tracer.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
+                    Tracer.To = Vector2.new(pos.X, pos.Y)
+                    Tracer.Color = Color3.fromRGB(255, 0, 0)
+                else Tracer.Visible = false end
+                
+                -- Name & Dist
+                if Settings.ESP_Names or Settings.ESP_Dist then
+                    Name.Visible = true
+                    local text = ""
+                    if Settings.ESP_Names then text = text .. player.Name end
+                    if Settings.ESP_Dist then text = text .. " [" .. math.floor((hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude) .. "m]" end
+                    Name.Text = text
+                    Name.Position = Vector2.new(pos.X, pos.Y - Box.Size.Y / 2 - 15)
+                    Name.Size = 14
+                    Name.Center = true
+                    Name.Outline = true
+                    Name.Color = Color3.fromRGB(255, 255, 255)
+                else Name.Visible = false end
+            else
+                Box.Visible = false Tracer.Visible = false Name.Visible = false
+            end
+        else
+            Box.Visible = false Tracer.Visible = false Name.Visible = false
+        end
+    end)
+end
+
+for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p) end end
+Players.PlayerAdded:Connect(CreateESP)
+
+-- // BYPASS & ANTI-AFK // --
+if Settings.Bypass then
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    local old = mt.__namecall
+    mt.__namecall = newcclosure(function(self, ...)
+        if getnamecallmethod() == "FireServer" and (self.Name:find("Detection") or self.Name:find("Check")) then return nil end
+        return old(self, ...)
+    end)
+end
+
+LocalPlayer.Idled:Connect(function()
+    game:GetService("VirtualUser"):CaptureController()
+    game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+end)
+
+Fluent:Notify({Title = "the strongest battlegrounds", Content = "By Diepvien26 (V1) đã sẵn sàng!", Duration = 5})
